@@ -10,7 +10,7 @@ install.packages("rvest")
 library(rvest)
 
    ####################################################################
-   ############ Etape 2 : charger les packages nécessaires ############
+   ############ Etape 2 : Extraction des informations ############
    ####################################################################
 
 
