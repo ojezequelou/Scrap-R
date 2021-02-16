@@ -1,0 +1,120 @@
+########################################################################################################################
+######################################## Scrap IMDb avec R  ########################################################
+########################################################################################################################
+
+   ####################################################################
+   ############ Etape 1 : charger les packages nécessaires ############
+   ####################################################################
+
+install.packages("rvest")
+library(rvest)
+
+   ####################################################################
+   ############ Etape 2 : charger les packages nécessaires ############
+   ####################################################################
+
+
+ ####################################################################
+ 
+ ## Identifier la construction de l'URL qui m'intéresse
+ # https://www.imdb.com/search/title/?title_type=feature&year=2019-01-01,2019-12-31&start=51&ref_=adv_nxt
+
+ ## Diviser l'URL en 3 parties
+ # paste0('https://www.imdb.com/search/title/?title_type=feature&year=2019-01-01,2019-12-31&start=',seq(1,301, by=50),'&ref_=adv_nxt')
+
+ ## Identifier où récupérer l'info
+ # xpath="//div[@class='lister-item-content']/h3/a"
+
+ ## Faire des pauses entre les différentes requêtes
+ # Sys.sleep(0.3)
+
+####################################################################
+
+URL_F <- lapply (paste0('https://www.imdb.com/search/title/?title_type=feature&year=2019-01-01,2019-12-31&start=',seq(1,301, by=50),'&ref_=adv_nxt'),
+                   function(url){
+                     Sys.sleep(0.3)
+                     url %>% read_html() %>% 
+                       html_nodes(xpath="//div[@class='lister-item-content']/h3/a/@href") %>% 
+                       html_text()
+                 })
+
+
+TITRE_F <- lapply (paste0('https://www.imdb.com/search/title/?title_type=feature&year=2019-01-01,2019-12-31&start=',seq(1,301, by=50),'&ref_=adv_nxt'),
+                   function(url){
+                     Sys.sleep(0.3)
+                     url %>% read_html() %>% 
+                       html_nodes(xpath="//div[@class='lister-item-content']/h3/a") %>% 
+                       html_text()
+                   })
+
+GENRE_F <- lapply (paste0('https://www.imdb.com/search/title/?title_type=feature&year=2019-01-01,2019-12-31&start=',seq(1,301, by=50),'&ref_=adv_nxt'),
+                   function(url){
+                     Sys.sleep(0.3)
+                     url %>% read_html() %>% 
+                       html_nodes(xpath="//span[@class='genre']") %>% 
+                       html_text()  %>% 
+                       gsub('[\r\n\t]', '', .)
+                   })
+
+NOTE_F <- lapply (paste0('https://www.imdb.com/search/title/?title_type=feature&year=2019-01-01,2019-12-31&start=',seq(1,301, by=50),'&ref_=adv_nxt'),
+                   function(url){
+                     Sys.sleep(0.3)
+                     url %>% read_html() %>% 
+                       html_nodes(xpath="//div[@class='inline-block ratings-imdb-rating']/strong") %>% 
+                       html_text()
+                   })
+
+DUREE_F <- lapply (paste0('https://www.imdb.com/search/title/?title_type=feature&year=2019-01-01,2019-12-31&start=',seq(1,301, by=50),'&ref_=adv_nxt'),
+                        function(url){
+                          Sys.sleep(0.3)
+                          url %>% read_html() %>% 
+                            html_nodes(xpath="//span[@class='runtime']") %>% 
+                            html_text()
+                        })
+
+
+SYNOPSIS_F <- lapply (paste0('https://www.imdb.com/search/title/?title_type=feature&year=2019-01-01,2019-12-31&start=',seq(1,301, by=50),'&ref_=adv_nxt'),
+                   function(url){
+                     Sys.sleep(0.3)
+                     url %>% read_html() %>% 
+                       html_nodes(xpath="//p[@class='text-muted']") %>% 
+                       html_text() %>% 
+                       gsub('[\r\n\t]', '', .)
+                   })
+
+
+REAL_ACTEURS_F <- lapply (paste0('https://www.imdb.com/search/title/?title_type=feature&year=2019-01-01,2019-12-31&start=',seq(1,301, by=50),'&ref_=adv_nxt'),
+                  function(url){
+                    Sys.sleep(0.3)
+                    url %>% read_html() %>% 
+                      html_nodes(xpath="//p[@class='']") %>% 
+                      html_text() %>% 
+                      gsub('[\r\n\t]', '', .)
+                    
+                  })
+
+############ Etape 3 : Constitution de la base de données ############
+
+BDD_FILMS  <- data.frame(unlist(URL_F),unlist(TITRE_F),unlist(GENRE_F),unlist(NOTE_F),unlist(DUREE_F),unlist(SYNOPSIS_F),unlist(REAL_ACTEURS_F))
+
+ ### Renommer les variables ###
+names(BDD_FILMS)  <- c('URL_F','TITRE_F','GENRE_F','NOTE_F','DUREE_F','SYNOPSIS_F','REAL_ACTEURS_F')
+
+ ### Créer une colonne réal et une colonne acteurs à partir de REAL_ACTEURS_F ###
+
+install.packages("stringr")
+library(stringr)
+
+### Séparer une chaîne de caracrères ###
+NEW_REAL_ACTEURS_F  <- data.frame(str_split(unlist(REAL_ACTEURS_F), "                 |     ",simplify = TRUE))
+names(NEW_REAL_ACTEURS_F)  <- c('REAL_F','V2','ACTEURS_F')
+
+
+library(tidyr)
+
+BDD_FILMS_F   <- cbind(BDD_FILMS, NEW_REAL_ACTEURS_F$REAL_F,NEW_REAL_ACTEURS_F$ACTEURS_F)
+names(BDD_FILMS_F)  <- c('URL_F','TITRE_F','GENRE_F','NOTE_F','DUREE_F','SYNOPSIS_F','REAL_ACTEURS_F','REAL_F',"ACTEURS_R")
+
+############ Etape 4 : Export en CSV ############
+
+write.csv(BDD_FILMS_F,"/Users/utilisateur/Documents/Scrap/BDD_FILMS.csv")
